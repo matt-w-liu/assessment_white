@@ -4,9 +4,8 @@
 
 ## Links
 
-- **Live product:** `<ADD DEPLOYED URL>`
+- **Live product:** `https://wesleyturner.netlify.app/`
 - **Walkthrough video:** see `VIDEO_URL.txt`
-- **Google Drive folder:** `<ADD DRIVE FOLDER LINK>`
 
 ## Test accounts (password `demo1234` for all)
 

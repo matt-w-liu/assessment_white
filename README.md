@@ -2,7 +2,7 @@
 
 A lightweight collaborative document editor: create, rename and edit rich-text documents in the browser, import files into new documents, and share documents with other users as editors or viewers.
 
-**Live demo:** `<ADD DEPLOYED URL>` · **Walkthrough video:** see [`VIDEO_URL.txt`](VIDEO_URL.txt)
+**Live demo:** `https://wesleyturner.netlify.app/` · **Walkthrough video:** see [`VIDEO_URL.txt`](VIDEO_URL.txt)
 
 ## Demo accounts
 
