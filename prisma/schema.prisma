@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String          @id @default(cuid())
+  email        String          @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime        @default(now())
+  documents    Document[]      @relation("OwnedDocuments")
+  shares       DocumentShare[]
+}
+
+model Document {
+  id        String          @id @default(cuid())
+  title     String
+  /// Sanitized HTML produced by the Tiptap editor (or by the import pipeline).
+  content   String          @default("") @db.Text
+  ownerId   String
+  owner     User            @relation("OwnedDocuments", fields: [ownerId], references: [id], onDelete: Cascade)
+  shares    DocumentShare[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([ownerId])
+}
+
+enum ShareRole {
+  VIEWER
+  EDITOR
+}
+
+model DocumentShare {
+  id         String    @id @default(cuid())
+  documentId String
+  userId     String
+  role       ShareRole @default(EDITOR)
+  createdAt  DateTime  @default(now())
+  document   Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, userId])
+  @@index([userId])
+}

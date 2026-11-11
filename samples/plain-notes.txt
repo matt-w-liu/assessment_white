@@ -1,0 +1,6 @@
+Plain text sample import
+
+Blank lines become new paragraphs.
+Single line breaks are kept inside a paragraph.
+
+Upload this file with "Import file" to create a new document.
