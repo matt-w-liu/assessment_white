@@ -10,16 +10,16 @@ All use the password **`demo1234`**. The login page also has one-click sign-in b
 
 | User | Email | Seeded data |
 |---|---|---|
-| Alice Chen | `alice@ajaia.test` | Owns "Welcome to Ajaia Docs" (shared with Bob as **editor**, Carol as **viewer**) and a private draft. Bob's notes are shared with her as a **viewer**. |
-| Bob Rivera | `bob@ajaia.test` | Owns "Weekly sync notes". Can **edit** Alice's welcome doc. |
-| Carol Singh | `carol@ajaia.test` | Can **view** Alice's welcome doc (read-only). |
+| Wesley Turner | `wesley@ajaia.test` | Owns "Welcome to Ajaia Docs" (shared with John as **editor**, Eric as **viewer**) and a private draft. John's notes are shared with them as a **viewer**. |
+| John Doe | `john@ajaia.test` | Owns "Weekly sync notes". Can **edit** Wesley's welcome doc. |
+| Eric Moon | `eric@ajaia.test` | Can **view** Wesley's welcome doc (read-only). |
 
 **Suggested review flow:**
-1. Sign in as Alice and create a document.
+1. Sign in as Wesley and create a document.
 2. Format it, rename it and refresh the page to confirm it persisted.
-3. Click **Share** and add `carol@ajaia.test` as *Can edit*.
-4. Sign out, sign in as Carol, find the document under **Shared with me** and edit it.
-5. Sign in as Carol and open the welcome doc. It's read-only for her.
+3. Click **Share** and add `eric@ajaia.test` as *Can edit*.
+4. Sign out, sign in as Eric, find the document under **Shared with me** and edit it.
+5. Sign in as Eric and open the welcome doc. It's read-only for them.
 
 ## Features
 

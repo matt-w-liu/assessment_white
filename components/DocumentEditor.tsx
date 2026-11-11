@@ -6,12 +6,18 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
+import { ArrowLeft, Check, CircleAlert, Eye, Loader2, UserPlus } from 'lucide-react';
 import { ROLE_LABELS, type Role } from '@/lib/access';
 import { apiRequest, jsonHeaders } from '@/lib/client';
 import { MAX_TITLE_LENGTH } from '@/lib/limits';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import LocalTime from './LocalTime';
 import ShareDialog from './ShareDialog';
 import Toolbar from './Toolbar';
+import UserAvatar from './UserAvatar';
 
 type SaveStatus = 'saved' | 'unsaved' | 'saving' | 'error';
 type Pending = { title?: string; content?: string };
@@ -182,53 +188,92 @@ export default function DocumentEditor({ document: doc, role }: Props) {
   }
 
   return (
-    <div className="editor-shell">
-      <header className="editor-header">
-        <Link href="/" className="back-link" title="Back to documents">
-          ← Docs
-        </Link>
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75">
+        <div className="mx-auto flex h-14 max-w-[1080px] items-center gap-3 px-4 sm:px-5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button asChild variant="ghost" size="icon" className="shrink-0">
+                <Link href="/" aria-label="Back to documents">
+                  <ArrowLeft />
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>All documents</TooltipContent>
+          </Tooltip>
 
-        <div className="title-area">
-          <input
-            className={`title-input${titleError ? ' is-invalid' : ''}`}
-            value={title}
-            onChange={(e) => onTitleChange(e.target.value)}
-            onBlur={onTitleBlur}
-            onKeyDown={onTitleKeyDown}
-            readOnly={!canEdit}
-            aria-label="Document title"
-            aria-invalid={Boolean(titleError)}
-          />
-          <div className="doc-meta-row">
-            <span className={`badge role-${role}`}>{ROLE_LABELS[role]}</span>
-            {role !== 'owner' && <span className="muted small">Owned by {doc.owner.name}</span>}
-            {canEdit && (
-              <SaveIndicator status={status} error={saveError} updatedAt={updatedAt} onRetry={() => void flush()} />
+          <div className="min-w-0 flex-1">
+            <input
+              className={cn(
+                '-ml-1.5 w-full truncate rounded-md border border-transparent bg-transparent px-1.5 py-0.5 font-serif text-lg font-semibold leading-tight outline-none transition-colors',
+                canEdit && 'hover:border-border focus:border-ring focus:bg-card',
+                titleError && 'border-destructive focus:border-destructive',
+                !canEdit && 'cursor-default',
+              )}
+              value={title}
+              onChange={(e) => onTitleChange(e.target.value)}
+              onBlur={onTitleBlur}
+              onKeyDown={onTitleKeyDown}
+              readOnly={!canEdit}
+              aria-label="Document title"
+              aria-invalid={Boolean(titleError)}
+            />
+            <div className="flex min-h-[18px] items-center gap-2 overflow-hidden whitespace-nowrap text-xs text-muted-foreground">
+              {titleError ? (
+                <span className="text-destructive">{titleError}</span>
+              ) : canEdit ? (
+                <SaveIndicator status={status} error={saveError} updatedAt={updatedAt} onRetry={() => void flush()} />
+              ) : (
+                <span>
+                  Edited <LocalTime iso={updatedAt} />
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2">
+            {role !== 'owner' && (
+              <span className="hidden items-center gap-2 text-xs text-muted-foreground md:inline-flex">
+                <UserAvatar name={doc.owner.name} email={doc.owner.email} className="h-6 w-6 [&>span]:text-[10px]" />
+                {doc.owner.name}&apos;s document
+              </span>
             )}
-            {titleError && <span className="form-error small">{titleError}</span>}
+            <Badge variant={role} className={role === 'owner' ? 'hidden sm:inline-flex' : undefined}>
+              {ROLE_LABELS[role]}
+            </Badge>
+            {role === 'owner' && (
+              <Button size="sm" onClick={() => setShareOpen(true)}>
+                <UserPlus /> Share
+              </Button>
+            )}
           </div>
         </div>
-
-        {role === 'owner' && (
-          <button className="btn btn-primary" onClick={() => setShareOpen(true)}>
-            Share
-          </button>
-        )}
       </header>
 
-      {canEdit ? (
-        <Toolbar editor={editor} />
-      ) : (
-        <div className="readonly-banner">You have view-only access. Ask {doc.owner.name} for edit access.</div>
-      )}
+      <div className="mx-auto max-w-[880px] px-3 pb-24 pt-4 sm:px-5">
+        {canEdit ? (
+          <Toolbar editor={editor} />
+        ) : (
+          <div className="flex items-center gap-2 rounded-lg border border-amber-300/60 bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
+            <Eye className="h-4 w-4 shrink-0" />
+            You can read this document but not change it. Ask {doc.owner.name} if you need edit access.
+          </div>
+        )}
 
-      <main className="page-area">
-        <div className="page">
-          {editor ? <EditorContent editor={editor} /> : <div className="editor-loading">Loading editor…</div>}
-        </div>
-      </main>
+        <main className="mt-4 rounded-sm border bg-paper px-6 py-10 shadow-page sm:px-16 sm:py-16 md:min-h-[1056px] md:px-[72px]">
+          {editor ? (
+            <EditorContent editor={editor} />
+          ) : (
+            <div className="space-y-3" aria-label="Loading editor">
+              <div className="h-8 w-2/3 animate-pulse rounded bg-muted" />
+              <div className="h-4 w-full animate-pulse rounded bg-muted" />
+              <div className="h-4 w-5/6 animate-pulse rounded bg-muted" />
+            </div>
+          )}
+        </main>
+      </div>
 
-      {shareOpen && <ShareDialog documentId={doc.id} onClose={() => setShareOpen(false)} />}
+      <ShareDialog documentId={doc.id} open={shareOpen} onOpenChange={setShareOpen} />
     </div>
   );
 }
@@ -244,21 +289,33 @@ function SaveIndicator({
   updatedAt: string;
   onRetry: () => void;
 }) {
-  if (status === 'saving') return <span className="save-status muted small">Saving…</span>;
-  if (status === 'unsaved') return <span className="save-status muted small">Unsaved changes</span>;
+  if (status === 'saving') {
+    return (
+      <span className="inline-flex items-center gap-1.5">
+        <Loader2 className="h-3 w-3 animate-spin" /> Saving…
+      </span>
+    );
+  }
+  if (status === 'unsaved') {
+    return (
+      <span className="inline-flex items-center gap-1.5">
+        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> Unsaved changes
+      </span>
+    );
+  }
   if (status === 'error') {
     return (
-      <span className="save-status form-error small" role="alert">
-        Couldn&apos;t save: {error}{' '}
-        <button className="link-btn" onClick={onRetry}>
+      <span className="inline-flex items-center gap-1.5 text-destructive" role="alert">
+        <CircleAlert className="h-3 w-3" /> Couldn&apos;t save: {error}
+        <button className="font-medium underline underline-offset-2" onClick={onRetry}>
           Retry
         </button>
       </span>
     );
   }
   return (
-    <span className="save-status muted small">
-      All changes saved · <LocalTime iso={updatedAt} />
+    <span className="inline-flex items-center gap-1.5">
+      <Check className="h-3 w-3 text-brand" /> Saved · <LocalTime iso={updatedAt} />
     </span>
   );
 }

@@ -32,7 +32,7 @@
 - **Manual end-to-end:** ✏️ Describe what you actually clicked through. For example:
   - Create, format, rename, then refresh and check that it persisted.
   - Import `samples/meeting-notes.md` and a real `.docx` file.
-  - Share as Alice, then sign in as Bob or Carol and confirm edit versus read-only.
+  - Share as Wesley, then sign in as John or Eric and confirm edit versus read-only.
   - Call the API as a non-shared user (expect a 404) and as a viewer trying to PATCH (expect a 403).
   - Kill the network mid-save and confirm "Couldn't save — Retry" appears and the change isn't lost.
 - **Code review:** I read every generated file before committing it. I focused on the access checks in each route, the sanitizer allowlist, and the autosave race conditions.

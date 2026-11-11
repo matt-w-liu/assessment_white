@@ -2,14 +2,17 @@
 
 import { useRouter } from 'next/navigation';
 import { useRef, useState, type ChangeEvent } from 'react';
+import { Loader2, Upload } from 'lucide-react';
+import { toast } from 'sonner';
 import { apiRequest } from '@/lib/client';
 import { IMPORT_ACCEPT, IMPORT_HINT, MAX_IMPORT_BYTES, SUPPORTED_IMPORT_EXTENSIONS } from '@/lib/limits';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function ImportButton() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function onFileChosen(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -19,16 +22,15 @@ export default function ImportButton() {
     // Fast client-side checks; the server re-validates everything.
     const ext = file.name.includes('.') ? file.name.slice(file.name.lastIndexOf('.')).toLowerCase() : '';
     if (!(SUPPORTED_IMPORT_EXTENSIONS as readonly string[]).includes(ext)) {
-      setError(`"${file.name}" isn't supported. ${IMPORT_HINT}.`);
+      toast.error(`"${file.name}" isn't supported`, { description: `${IMPORT_HINT}.` });
       return;
     }
     if (file.size > MAX_IMPORT_BYTES) {
-      setError(`"${file.name}" is larger than 2 MB.`);
+      toast.error(`"${file.name}" is larger than 2 MB`);
       return;
     }
 
     setBusy(true);
-    setError(null);
     try {
       const body = new FormData();
       body.append('file', file);
@@ -38,16 +40,22 @@ export default function ImportButton() {
       });
       router.push(`/docs/${document.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Import failed');
+      toast.error('Import failed', { description: err instanceof Error ? err.message : undefined });
       setBusy(false);
     }
   }
 
   return (
-    <div className="action-with-error">
-      <button className="btn" onClick={() => inputRef.current?.click()} disabled={busy} title={IMPORT_HINT}>
-        {busy ? 'Importing…' : 'Import file'}
-      </button>
+    <>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="outline" onClick={() => inputRef.current?.click()} disabled={busy}>
+            {busy ? <Loader2 className="animate-spin" /> : <Upload />}
+            {busy ? 'Importing…' : 'Import'}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{IMPORT_HINT}</TooltipContent>
+      </Tooltip>
       <input
         ref={inputRef}
         type="file"
@@ -56,9 +64,6 @@ export default function ImportButton() {
         hidden
         aria-label="Import a .txt, .md or .docx file"
       />
-      <p className={error ? 'form-error small' : 'muted small'} role={error ? 'alert' : undefined}>
-        {error ?? IMPORT_HINT}
-      </p>
-    </div>
+    </>
   );
 }

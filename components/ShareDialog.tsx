@@ -1,7 +1,18 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { Loader2, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { apiRequest, jsonHeaders } from '@/lib/client';
+import { DEMO_USERS } from '@/lib/demo';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import UserAvatar from './UserAvatar';
 
 type ShareRole = 'viewer' | 'editor';
 interface ShareEntry {
@@ -16,7 +27,13 @@ interface Owner {
   email: string;
 }
 
-export default function ShareDialog({ documentId, onClose }: { documentId: string; onClose: () => void }) {
+interface Props {
+  documentId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export default function ShareDialog({ documentId, open, onOpenChange }: Props) {
   const [owner, setOwner] = useState<Owner | null>(null);
   const [shares, setShares] = useState<ShareEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,12 +41,11 @@ export default function ShareDialog({ documentId, onClose }: { documentId: strin
   const [role, setRole] = useState<ShareRole>('editor');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const emailRef = useRef<HTMLInputElement>(null);
 
   const base = `/api/documents/${documentId}/shares`;
 
   const load = useCallback(async () => {
+    setLoading(true);
     try {
       const data = await apiRequest<{ owner: Owner; shares: ShareEntry[] }>(base);
       setOwner(data.owner);
@@ -42,22 +58,15 @@ export default function ShareDialog({ documentId, onClose }: { documentId: strin
   }, [base]);
 
   useEffect(() => {
-    void load();
-    emailRef.current?.focus();
-  }, [load]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+    if (open) {
+      setError(null);
+      void load();
+    }
+  }, [open, load]);
 
   async function grant(targetEmail: string, targetRole: ShareRole) {
     setBusy(true);
     setError(null);
-    setNotice(null);
     try {
       const data = await apiRequest<{ shares: ShareEntry[] }>(base, {
         method: 'POST',
@@ -82,7 +91,7 @@ export default function ShareDialog({ documentId, onClose }: { documentId: strin
       return;
     }
     if (await grant(target, role)) {
-      setNotice(`Shared with ${target}`);
+      toast.success(`Shared with ${target}`);
       setEmail('');
     }
   }
@@ -90,11 +99,10 @@ export default function ShareDialog({ documentId, onClose }: { documentId: strin
   async function revoke(entry: ShareEntry) {
     setBusy(true);
     setError(null);
-    setNotice(null);
     try {
       await apiRequest<void>(`${base}/${entry.userId}`, { method: 'DELETE' });
       setShares((prev) => prev.filter((s) => s.userId !== entry.userId));
-      setNotice(`Removed access for ${entry.email}`);
+      toast(`Removed ${entry.name}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not remove access');
     } finally {
@@ -102,93 +110,140 @@ export default function ShareDialog({ documentId, onClose }: { documentId: strin
     }
   }
 
+  // Demo users who don't have access yet, offered as one-click suggestions.
+  const taken = new Set([owner?.email, ...shares.map((s) => s.email)]);
+  const suggestions = loading ? [] : DEMO_USERS.filter((u) => !taken.has(u.email));
+
   return (
-    <div className="modal-backdrop" onMouseDown={onClose}>
-      <div
-        className="modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="share-title"
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        <div className="modal-header">
-          <h2 id="share-title">Share document</h2>
-          <button className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Close">
-            ✕
-          </button>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[520px] gap-0 p-0">
+        <DialogHeader className="p-6 pb-4">
+          <DialogTitle>Share document</DialogTitle>
+          <DialogDescription>People you add can find it under &ldquo;Shared with me&rdquo;.</DialogDescription>
+        </DialogHeader>
+
+        <div className="px-6">
+          <form className="flex flex-col gap-2 sm:flex-row" onSubmit={onSubmit}>
+            <Input
+              type="email"
+              placeholder="name@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              aria-label="Email address"
+              disabled={busy}
+              className="flex-1"
+            />
+            <div className="flex gap-2">
+              <Select value={role} onValueChange={(v) => setRole(v as ShareRole)} disabled={busy}>
+                <SelectTrigger className="w-[112px]" aria-label="Access level">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="editor">Can edit</SelectItem>
+                  <SelectItem value="viewer">Can view</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button type="submit" disabled={busy || !email.trim()}>
+                {busy && <Loader2 className="animate-spin" />}
+                Invite
+              </Button>
+            </div>
+          </form>
+
+          {suggestions.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+              <span>Suggestions:</span>
+              {suggestions.map((u) => (
+                <button
+                  key={u.email}
+                  type="button"
+                  onClick={() => setEmail(u.email)}
+                  className="rounded-full border bg-card px-2 py-0.5 text-foreground transition-colors hover:border-ring hover:bg-brand-soft"
+                >
+                  {u.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {error && (
+            <p className="mt-3 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive" role="alert">
+              {error}
+            </p>
+          )}
         </div>
 
-        <form className="share-form" onSubmit={onSubmit}>
-          <input
-            ref={emailRef}
-            type="email"
-            placeholder="Add people by email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            aria-label="Email address"
-            disabled={busy}
-          />
-          <select value={role} onChange={(e) => setRole(e.target.value as ShareRole)} aria-label="Access level" disabled={busy}>
-            <option value="editor">Can edit</option>
-            <option value="viewer">Can view</option>
-          </select>
-          <button type="submit" className="btn btn-primary" disabled={busy}>
-            Share
-          </button>
-        </form>
-        <p className="small muted">Demo users: alice@ajaia.test, bob@ajaia.test, carol@ajaia.test</p>
+        <Separator className="mt-5" />
 
-        {error && (
-          <p className="form-error" role="alert">
-            {error}
-          </p>
-        )}
-        {notice && (
-          <p className="form-notice" role="status">
-            {notice}
-          </p>
-        )}
+        <div className="p-6 pt-4">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">People with access</h3>
+          {loading ? (
+            <div className="space-y-3 py-1">
+              {[0, 1].map((i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
+                  <div className="h-3 w-40 animate-pulse rounded bg-muted" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <ul className="-mx-2 max-h-[280px] overflow-auto">
+              {owner && (
+                <PersonRow name={owner.name} email={owner.email}>
+                  <Badge variant="owner">Owner</Badge>
+                </PersonRow>
+              )}
+              {shares.map((s) => (
+                <PersonRow key={s.userId} name={s.name} email={s.email}>
+                  <Select value={s.role} onValueChange={(v) => void grant(s.email, v as ShareRole)} disabled={busy}>
+                    <SelectTrigger
+                      className="h-8 w-[104px] border-transparent bg-transparent text-xs shadow-none hover:bg-accent"
+                      aria-label={`Access level for ${s.email}`}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="editor">Can edit</SelectItem>
+                      <SelectItem value="viewer">Can view</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        disabled={busy}
+                        onClick={() => void revoke(s)}
+                        aria-label={`Remove ${s.email}`}
+                      >
+                        <X />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Remove access</TooltipContent>
+                  </Tooltip>
+                </PersonRow>
+              ))}
+              {shares.length === 0 && (
+                <li className="px-2 py-3 text-sm text-muted-foreground">Only you can see this right now.</li>
+              )}
+            </ul>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
-        <h3 className="share-subheading">People with access</h3>
-        {loading ? (
-          <p className="muted">Loading…</p>
-        ) : (
-          <ul className="share-list">
-            {owner && (
-              <li className="share-row">
-                <div>
-                  <div>{owner.name}</div>
-                  <div className="small muted">{owner.email}</div>
-                </div>
-                <span className="badge role-owner">Owner</span>
-              </li>
-            )}
-            {shares.map((s) => (
-              <li key={s.userId} className="share-row">
-                <div>
-                  <div>{s.name}</div>
-                  <div className="small muted">{s.email}</div>
-                </div>
-                <div className="row-gap">
-                  <select
-                    value={s.role}
-                    aria-label={`Access level for ${s.email}`}
-                    disabled={busy}
-                    onChange={(e) => void grant(s.email, e.target.value as ShareRole)}
-                  >
-                    <option value="editor">Can edit</option>
-                    <option value="viewer">Can view</option>
-                  </select>
-                  <button className="btn btn-ghost btn-danger btn-sm" disabled={busy} onClick={() => void revoke(s)}>
-                    Remove
-                  </button>
-                </div>
-              </li>
-            ))}
-            {shares.length === 0 && <li className="muted small">Not shared with anyone yet.</li>}
-          </ul>
-        )}
+function PersonRow({ name, email, children }: { name: string; email: string; children: ReactNode }) {
+  return (
+    <li className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-accent/40">
+      <UserAvatar name={name} email={email} />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-medium">{name}</div>
+        <div className="truncate text-xs text-muted-foreground">{email}</div>
       </div>
-    </div>
+      <div className="flex items-center gap-1">{children}</div>
+    </li>
   );
 }

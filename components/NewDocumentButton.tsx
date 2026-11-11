@@ -2,16 +2,17 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { Loader2, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 import { apiRequest, jsonHeaders } from '@/lib/client';
+import { Button } from '@/components/ui/button';
 
 export default function NewDocumentButton() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function create() {
     setBusy(true);
-    setError(null);
     try {
       const { document } = await apiRequest<{ document: { id: string } }>('/api/documents', {
         method: 'POST',
@@ -20,21 +21,15 @@ export default function NewDocumentButton() {
       });
       router.push(`/docs/${document.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not create document');
+      toast.error(err instanceof Error ? err.message : 'Could not create document');
       setBusy(false);
     }
   }
 
   return (
-    <div className="action-with-error">
-      <button className="btn btn-primary" onClick={create} disabled={busy}>
-        {busy ? 'Creating…' : '+ New document'}
-      </button>
-      {error && (
-        <p className="form-error small" role="alert">
-          {error}
-        </p>
-      )}
-    </div>
+    <Button onClick={create} disabled={busy}>
+      {busy ? <Loader2 className="animate-spin" /> : <Plus />}
+      New document
+    </Button>
   );
 }

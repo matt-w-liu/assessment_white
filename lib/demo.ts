@@ -5,7 +5,7 @@
 export const DEMO_PASSWORD = 'demo1234';
 
 export const DEMO_USERS = [
-  { key: 'alice', email: 'alice@ajaia.test', name: 'Alice Chen' },
-  { key: 'bob', email: 'bob@ajaia.test', name: 'Bob Rivera' },
-  { key: 'carol', email: 'carol@ajaia.test', name: 'Carol Singh' },
+  { key: 'wesley', email: 'wesley@ajaia.test', name: 'Wesley Turner', blurb: 'Owns the welcome doc' },
+  { key: 'john', email: 'john@ajaia.test', name: 'John Doe', blurb: 'Can edit the welcome doc' },
+  { key: 'eric', email: 'eric@ajaia.test', name: 'Eric Moon', blurb: 'Read-only on the welcome doc' },
 ] as const;

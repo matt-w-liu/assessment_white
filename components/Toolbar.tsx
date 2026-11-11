@@ -2,6 +2,22 @@
 
 import type { Editor } from '@tiptap/react';
 import type { ReactNode } from 'react';
+import {
+  Bold,
+  Italic,
+  List,
+  ListOrdered,
+  Quote,
+  Redo2,
+  RemoveFormatting,
+  Strikethrough,
+  Underline,
+  Undo2,
+} from 'lucide-react';
+import { Toggle } from '@/components/ui/toggle';
+import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 type BlockType = 'p' | 'h1' | 'h2' | 'h3';
 
@@ -21,24 +37,34 @@ function ToolButton({
   children: ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      className={`tool-btn${active ? ' is-active' : ''}`}
-      title={shortcut ? `${label} (${shortcut})` : label}
-      aria-label={label}
-      aria-pressed={active}
-      disabled={disabled}
-      // Keep the editor selection when clicking toolbar buttons.
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={onClick}
-    >
-      {children}
-    </button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Toggle
+          size="sm"
+          pressed={active}
+          disabled={disabled}
+          aria-label={label}
+          // Keep the editor selection when clicking toolbar buttons.
+          onMouseDown={(e) => e.preventDefault()}
+          onPressedChange={onClick}
+        >
+          {children}
+        </Toggle>
+      </TooltipTrigger>
+      <TooltipContent>
+        {label}
+        {shortcut && <span className="ml-2 font-mono text-[10px] opacity-60">{shortcut}</span>}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
+const Divider = () => <Separator orientation="vertical" className="mx-1 h-5" />;
+
 export default function Toolbar({ editor }: { editor: Editor | null }) {
-  if (!editor) return <div className="toolbar" aria-hidden />;
+  const shell =
+    'sticky top-14 z-20 flex min-h-11 flex-wrap items-center gap-0.5 rounded-lg border bg-card/95 px-2 py-1 shadow-sm backdrop-blur';
+  if (!editor) return <div className={shell} aria-hidden />;
 
   const blockType: BlockType = editor.isActive('heading', { level: 1 })
     ? 'h1'
@@ -56,56 +82,65 @@ export default function Toolbar({ editor }: { editor: Editor | null }) {
   }
 
   return (
-    <div className="toolbar" role="toolbar" aria-label="Formatting">
+    <div className={shell} role="toolbar" aria-label="Formatting">
       <ToolButton label="Undo" shortcut="Ctrl+Z" disabled={!editor.can().undo()} onClick={() => editor.chain().focus().undo().run()}>
-        ↶
+        <Undo2 />
       </ToolButton>
       <ToolButton label="Redo" shortcut="Ctrl+Shift+Z" disabled={!editor.can().redo()} onClick={() => editor.chain().focus().redo().run()}>
-        ↷
+        <Redo2 />
       </ToolButton>
 
-      <span className="tool-sep" aria-hidden />
+      <Divider />
 
-      <select
-        className="tool-select"
-        aria-label="Text style"
-        value={blockType}
-        onChange={(e) => setBlockType(e.target.value as BlockType)}
-      >
-        <option value="p">Normal text</option>
-        <option value="h1">Heading 1</option>
-        <option value="h2">Heading 2</option>
-        <option value="h3">Heading 3</option>
-      </select>
+      <Select value={blockType} onValueChange={(v) => setBlockType(v as BlockType)}>
+        <SelectTrigger className="h-8 w-[130px] border-transparent bg-transparent shadow-none hover:bg-accent" aria-label="Text style">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="p">Normal text</SelectItem>
+          <SelectItem value="h1">
+            <span className="font-serif text-lg font-semibold">Heading 1</span>
+          </SelectItem>
+          <SelectItem value="h2">
+            <span className="font-serif text-base font-semibold">Heading 2</span>
+          </SelectItem>
+          <SelectItem value="h3">
+            <span className="text-xs font-semibold uppercase tracking-wide">Heading 3</span>
+          </SelectItem>
+        </SelectContent>
+      </Select>
 
-      <span className="tool-sep" aria-hidden />
+      <Divider />
 
       <ToolButton label="Bold" shortcut="Ctrl+B" active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()}>
-        <strong>B</strong>
+        <Bold />
       </ToolButton>
       <ToolButton label="Italic" shortcut="Ctrl+I" active={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()}>
-        <em>I</em>
+        <Italic />
       </ToolButton>
       <ToolButton label="Underline" shortcut="Ctrl+U" active={editor.isActive('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()}>
-        <u>U</u>
+        <Underline />
       </ToolButton>
       <ToolButton label="Strikethrough" shortcut="Ctrl+Shift+S" active={editor.isActive('strike')} onClick={() => editor.chain().focus().toggleStrike().run()}>
-        <s>S</s>
+        <Strikethrough />
       </ToolButton>
 
-      <span className="tool-sep" aria-hidden />
+      <Divider />
 
       <ToolButton label="Bulleted list" shortcut="Ctrl+Shift+8" active={editor.isActive('bulletList')} onClick={() => editor.chain().focus().toggleBulletList().run()}>
-        •≡
+        <List />
       </ToolButton>
       <ToolButton label="Numbered list" shortcut="Ctrl+Shift+7" active={editor.isActive('orderedList')} onClick={() => editor.chain().focus().toggleOrderedList().run()}>
-        1≡
+        <ListOrdered />
       </ToolButton>
       <ToolButton label="Quote" shortcut="Ctrl+Shift+B" active={editor.isActive('blockquote')} onClick={() => editor.chain().focus().toggleBlockquote().run()}>
-        ❝
+        <Quote />
       </ToolButton>
+
+      <Divider />
+
       <ToolButton label="Clear formatting" onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}>
-        ⨯
+        <RemoveFormatting />
       </ToolButton>
     </div>
   );

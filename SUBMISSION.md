@@ -10,9 +10,9 @@
 
 ## Test accounts (password `demo1234` for all)
 
-- `alice@ajaia.test`: owner of the shared "Welcome" doc
-- `bob@ajaia.test`: editor on Alice's doc; owner of "Weekly sync notes"
-- `carol@ajaia.test`: viewer (read-only) on Alice's doc
+- `wesley@ajaia.test`: owner of the shared "Welcome" doc
+- `john@ajaia.test`: editor on Wesley's doc; owner of "Weekly sync notes"
+- `eric@ajaia.test`: viewer (read-only) on Wesley's doc
 
 The login page has one-click buttons for each account.
 
